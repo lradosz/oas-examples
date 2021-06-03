@@ -1,0 +1,54 @@
+openapi: '3.0.2'
+info:
+  title: API Dashboard
+  version: '1.0'
+servers:
+  - url: http://dashboard.ingress.istio:9080/v1/
+paths:
+  /dashboards:
+    get:
+      summary: "Get All Dashboards"
+      description: "List all available Dashboards for a particular user"
+      operationId: "getDashboards"
+      responses:
+        '200':
+          description: "Array of Dashboards id"
+  /dashboard/{dashboardId}:
+    get:
+      summary: "Get Dashboard"
+      description: "Get Dashboard by id"
+      operationId: "getDashboard"
+      parameters:
+      - name: "dashboardId"
+        in: "path"
+        description: "ID of dashboard to return"
+        required: true
+        schema:
+          type: string
+          format: byte
+      responses:
+        '200':
+          description: "Get Dashboard" 
+    put:
+      summary: "Update or Craete Dashboard"
+      description: "Update Dashboard with specificed id, if dashboard doesn't exist create one"
+      operationId: "updateDashboard"
+      parameters:
+      - name: "dashboardId"
+        in: "path"
+        description: "ID of dashboard to return"
+        required: true
+        schema:
+          type: string
+          format: byte
+      responses:
+        '200':
+          description: "Updated or created Dashboard" 
+  /dashboard:
+    post:
+      summary: "Create a Dashboard"
+      description: "Create a new dashboard"
+      operationId: "createDashboard"
+      responses:
+        '200':
+          description: "Created Dashboard" 
