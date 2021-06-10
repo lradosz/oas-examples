@@ -1,0 +1,683 @@
+consumes:
+  - application/json
+basePath: /data-load
+info:
+  description: API for provisioning user and program data for a customer.
+  title: Core Dataload
+  version: 1.1.0
+tags:
+  - name: datasets
+    description: REST operations on datasets
+  - name: data-load
+    description: RPC operations in data-load
+paths:
+  /datasets/availableFields:
+    get:
+      tags:
+        - datasets
+      description: Returns all available fields that the API will accept when inserting data
+      operationId: getAvailableFields
+      parameters:
+        - description: The HTTP authorization header containing a valid 'Bearer' token.
+          in: header
+          name: authorization
+          required: true
+          type: string
+        - description: The Customer UUID
+          in: query
+          name: customerUUID
+          required: false
+          type: string
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: List of fields available to insert
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/AvailableFields'
+        '401':
+          description: The client could not be authenticated.
+  /datasets:
+    get:
+      tags:
+        - datasets
+      description: Returns all datasets that have been opened along with the corresponding status for each dataset
+      operationId: getDatasets
+      parameters:
+        - description: The HTTP authorization header containing a valid 'Bearer' token.
+          in: header
+          name: authorization
+          required: true
+          type: string
+        - description: The Customer UUID
+          in: query
+          name: customerUUID
+          required: false
+          type: string
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: List of datasets
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Dataset'
+        '401':
+          description: The client could not be authenticated.
+  '/datasets/{datasetUUID}':
+    get:
+      tags:
+        - datasets
+      description: Returns a single dataset along with the corresponding status
+      operationId: getDatasetById
+      produces:
+        - application/json
+      parameters:
+        - description: The HTTP authorization header containing a valid 'Bearer' token.
+          in: header
+          name: authorization
+          required: true
+          type: string
+        - description: The UUID of the dataset to return
+          in: path
+          name: datasetUUID
+          required: true
+          type: string
+        - description: The Customer UUID
+          in: query
+          name: customerUUID
+          required: false
+          type: string
+      responses:
+        '200':
+          $ref: '#/responses/DatasetResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: The client could not be authenticated.
+        '404':
+          description: Dataset not found
+    delete:
+      tags:
+        - datasets
+      description: Deletes a dataset
+      operationId: deleteDatasetById
+      parameters:
+        - description: The HTTP authorization header containing a valid 'Bearer' token.
+          in: header
+          name: authorization
+          required: true
+          type: string
+        - description: The UUID of the dataset to delete
+          in: path
+          name: datasetUUID
+          required: true
+          type: string
+        - description: The Customer UUID
+          in: query
+          name: customerUUID
+          required: false
+          type: string
+      responses:
+        '200':
+          $ref: '#/responses/DatasetDeleteResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: The client could not be authenticated.
+        '404':
+          description: Dataset not found
+        '422':
+          $ref: '#/responses/DatasetDeleteUnprocessableResponse'
+        '500':
+          description: Internal Server Error
+  /open-dataset:
+    post:
+      tags:
+        - data-load
+      consumes: []
+      description: Begins the process of uploading a new data set in batches.
+      operationId: openDataSet
+      parameters:
+        - description: The HTTP authorization header containing a valid 'Bearer' token.
+          in: header
+          name: authorization
+          required: true
+          type: string
+        - description: The Customer UUID
+          in: query
+          name: customerUUID
+          required: false
+          type: string
+        - description: File Load Type p = partial and f = full
+          in: query
+          name: fileLoadType
+          required: false
+          type: string
+        - description: Division ID The division id that is assigned to each division
+          in: query
+          name: divisionId
+          required: false
+          type: string
+      produces:
+        - application/json
+      responses:
+        '200':
+          $ref: '#/responses/DataloadResponse'
+        '401':
+          description: The client could not be authenticated.
+        '422':
+          $ref: '#/responses/DatasetErrorResponse'
+        '500':
+          $ref: '#/responses/DatasetErrorResponse'
+  /insert:
+    post:
+      tags:
+        - data-load
+      consumes:
+        - application/json
+      description: Inserts an array of data into a dataset.
+      operationId: insert
+      parameters:
+        - description: The HTTP authorization header containing a valid 'Bearer' token.
+          in: header
+          name: authorization
+          required: true
+          type: string
+        - name: body
+          in: body
+          description: Array of data to insert, limited to 10,000 records.
+          required: true
+          schema:
+            $ref: '#/definitions/DataInsert'
+        - description: The Customer UUID
+          in: query
+          name: customerUUID
+          required: false
+          type: string
+      produces:
+        - application/json
+      responses:
+        '200':
+          $ref: '#/responses/DataloadResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: The client could not be authenticated.
+        '413':
+          $ref: '#/responses/DatasetErrorResponse'
+        '422':
+          $ref: '#/responses/DatasetErrorResponse'
+        '500':
+          $ref: '#/responses/DatasetErrorResponse'
+  /close-dataset:
+    post:
+      tags:
+        - data-load
+      consumes: []
+      description: >-
+        Finishes the process of uploading a new dataset in batches, starts
+        processing the dataset.
+      operationId: closeDataSet
+      parameters:
+        - description: The HTTP authorization header containing a valid 'Bearer' token.
+          in: header
+          name: authorization
+          required: true
+          type: string
+        - description: >-
+            An object containing the id of the dataset and the total number of
+            data in the dataset.
+          in: body
+          required: true
+          name: body
+          schema:
+            type: object
+            properties:
+              datasetUUID:
+                type: string
+              datasetCount:
+                type: integer
+        - description: The Customer UUID
+          in: query
+          name: customerUUID
+          required: false
+          type: string
+      produces:
+        - application/json
+      responses:
+        '200':
+          $ref: '#/responses/DataloadResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: The client could not be authenticated.
+        '422':
+          $ref: '#/responses/DatasetErrorResponse'
+produces:
+  - application/json
+responses:
+  DataloadResponse:
+    description: A successful response to opening a dataset
+    schema:
+      $ref: '#/definitions/DataloadResponse'
+  DatasetResponse:
+    description: The dataset requested
+    schema:
+      $ref: '#/definitions/Dataset'
+  DatasetErrorResponse:
+    description: The dataset error
+    schema:
+      $ref: '#/definitions/Dataset'
+  DatasetDeleteResponse:
+    description: The dataset deleted
+    schema:
+      $ref: '#/definitions/DataloadResponse'
+  DatasetDeleteUnprocessableResponse:
+    description: Unprocessable dataset
+    schema:
+      $ref: '#/definitions/DataloadResponse'
+  AvailableFieldsResponse:
+    description: Available Fields
+    schema:
+      $ref: '#/definitions/AvailableFields'
+definitions:
+  AvailableFields:
+    description: All fields available for insert
+    type: object
+    properties:
+      fieldName:
+        type: string
+  DataloadResponse:
+    description: A successful response to opening a dataset
+    type: object
+    properties:
+      datasetUUID:
+        type: string
+      status:
+        type: string
+      dataLoadName:
+        type: string
+  DataInsert:
+    type: object
+    properties:
+      datasetUUID:
+        type: string
+      data:
+        type: array
+        items:
+          $ref: '#/definitions/Data'
+  Dataset:
+    type: object
+    properties:
+      datasetUUID:
+        type: string
+      datasetStatus:
+        type: string
+      datasetCreatedOn:
+        type: string
+      datasetName:
+        type: string
+  Data:
+    type: object
+    properties:
+      uniqueId:
+        type: string
+      firstName:
+        type: string
+      lastName:
+        type: string
+      loginId:
+        type: string
+      emailAddress:
+        type: string
+      adminCode:
+        type: string
+      appEligibility:
+        type: string
+      bill1Add1:
+        type: string
+      bill1Add2:
+        type: string
+      bill1Add3:
+        type: string
+      bill1City:
+        type: string
+      bill1Country:
+        type: string
+      bill1Email:
+        type: string
+      bill1LocationContactName:
+        type: string
+      bill1LocationId:
+        type: string
+      bill1LocationName:
+        type: string
+      bill1Phone:
+        type: string
+      bill1Postal:
+        type: string
+      bill1State:
+        type: string
+      bill1ThirdPartyAccountNumber:
+        type: string
+      bill2Add1:
+        type: string
+      bill2Add2:
+        type: string
+      bill2Add3:
+        type: string
+      bill2City:
+        type: string
+      bill2Country:
+        type: string
+      bill2Email:
+        type: string
+      bill2LocationContactName:
+        type: string
+      bill2LocationId:
+        type: string
+      bill2LocationName:
+        type: string
+      bill2Phone:
+        type: string
+      bill2Postal:
+        type: string
+      bill2State:
+        type: string
+      bill2ThirdPartyAccountNumber:
+        type: string
+      bravoPoNumber:
+        type: string
+      buId:
+        type: string
+      buName:
+        type: string
+      catalogCountry:
+        type: string
+      costCenter:
+        type: string
+      costCenterName:
+        type: string
+      department:
+        type: string
+      educationLevel:
+        type: string
+      emplAnnivDate:
+        type: string
+      emplAwdLevel:
+        type: string
+      emplBirthDate:
+        type: string
+      emplBirthMonth:
+        type: string
+      emplHireDate:
+        type: string
+      emplPoNumber:
+        type: string
+      employeeImageUrl:
+        type: string
+      employeeSecurityRole:
+        type: string
+      employmentStatus:
+        type: string
+      ethnicity:
+        type: string
+      financialUnitId:
+        type: string
+      financialUnitName:
+        type: string
+      gender:
+        type: string
+      homeAdd1:
+        type: string
+      homeAdd2:
+        type: string
+      homeAdd3:
+        type: string
+      homeCity:
+        type: string
+      homeCountry:
+        type: string
+      homePhone:
+        type: string
+      homePostal:
+        type: string
+      homeState:
+        type: string
+      hourlySalaryTemp:
+        type: string
+      jobCode:
+        type: string
+      jobDescription:
+        type: string
+      jobTitle:
+        type: string
+      labelLine1:
+        type: string
+      labelLine2:
+        type: string
+      labelLine3:
+        type: string
+      language:
+        type: string
+      manager:
+        type: string
+      managerUniqueId:
+        type: string
+      middleName:
+        type: string
+      notificationEmail:
+        type: string
+      oldUniqueId:
+        type: string
+      orderSelectionEngraving:
+        type: string
+      parentBuId:
+        type: string
+      parentBuName:
+        type: string
+      parentFinancialUnitId:
+        type: string
+      parentFinancialUnitName:
+        type: string
+      preferredName:
+        type: string
+      programCode:
+        type: string
+      programEligibility:
+        type: string
+      salary:
+        type: string
+      secondCostCenter:
+        type: string
+      secondCostCenterName:
+        type: string
+      segmentBillingGroup:
+        type: string
+      segmentBusinessUnit:
+        type: string
+      segmentCity:
+        type: string
+      segmentCompany:
+        type: string
+      segmentCountry:
+        type: string
+      segmentDepartment:
+        type: string
+      segmentEmployeeType:
+        type: string
+      segmentEnrollmentGrouping:
+        type: string
+      segmentFilters:
+        type: string
+      segmentGlobalRegion:
+        type: string
+      segmentMedicalPlan:
+        type: string
+      segmentOfficeLocation:
+        type: string
+      segmentRewardSegment:
+        type: string
+      segmentState:
+        type: string
+      segmentSubscriberId:
+        type: string
+      segmentUserCategory:
+        type: string
+      serviceDate:
+        type: string
+      terminationDate:
+        type: string
+      terminationType:
+        type: string
+      vpDateOfBirth:
+        type: string
+      vpEligibleDate:
+        type: string
+      vpIneligibleDate:
+        type: string
+      vpReport1:
+        type: string
+      vpReport10:
+        type: string
+      vpReport11:
+        type: string
+      vpReport12:
+        type: string
+      vpReport13:
+        type: string
+      vpReport14:
+        type: string
+      vpReport15:
+        type: string
+      vpReport16:
+        type: string
+      vpReport17:
+        type: string
+      vpReport18:
+        type: string
+      vpReport19:
+        type: string
+      vpReport2:
+        type: string
+      vpReport20:
+        type: string
+      vpReport3:
+        type: string
+      vpReport4:
+        type: string
+      vpReport5:
+        type: string
+      vpReport6:
+        type: string
+      vpReport7:
+        type: string
+      vpReport8:
+        type: string
+      vpReport9:
+        type: string
+      work1Add1:
+        type: string
+      work1Add2:
+        type: string
+      work1Add3:
+        type: string
+      work1City:
+        type: string
+      work1Country:
+        type: string
+      work1Email:
+        type: string
+      work1LocationContactName:
+        type: string
+      work1LocationId:
+        type: string
+      work1LocationName:
+        type: string
+      work1Phone:
+        type: string
+      work1Postal:
+        type: string
+      work1State:
+        type: string
+      work1ThirdPartyAccountNumber:
+        type: string
+      work2Add1:
+        type: string
+      work2Add2:
+        type: string
+      work2Add3:
+        type: string
+      work2City:
+        type: string
+      work2Country:
+        type: string
+      work2Email:
+        type: string
+      work2LocationContactName:
+        type: string
+      work2LocationId:
+        type: string
+      work2LocationName:
+        type: string
+      work2Phone:
+        type: string
+      work2Postal:
+        type: string
+      work2State:
+        type: string
+      work2ThirdPartyAccountNumber:
+        type: string
+      shippingLabelLine1:
+        type: string
+      shippingLabelLine2:
+        type: string
+      invoiceLabelLine1:
+        type: string
+      invoiceLabelLine2:
+        type: string
+      invoiceLabelLine3:
+        type: string
+      invoiceLabelLine4:
+        type: string
+      advancedApprovalPath1:
+        type: string
+      advancedApprovalPath2:
+        type: string
+      reportingHierarchy1:
+        type: string
+      reportingHierarchy2:
+        type: string
+      reportingHierarchy3:
+        type: string
+      reportingHierarchy4:
+        type: string
+      reportingHierarchy5:
+        type: string
+      reportingHierarchy6:
+        type: string
+      reportingHierarchy7:
+        type: string
+      reportingHierarchy8:
+        type: string
+      reportingHierarchy9:
+        type: string
+      reportingHierarchy10:
+        type: string
+      glCode:
+        type: string
+      titleCode:
+        type: string
+      clientDefinedField:
+        type: object
+      effectiveHireDate:
+        type: string
+      nonCredFlag:
+        type: boolean
+schemes:
+  - https
+swagger: '2.0'
